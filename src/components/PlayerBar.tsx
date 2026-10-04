@@ -18,19 +18,29 @@ export default function PlayerBar({ player, lang }: Props) {
   const progress = duration > 0 ? currentTime / duration : 0;
   const [c1, c2] = current ? paletteFor(current.id) : ["#ccc", "#999"];
 
-  function handleSeekClick(e: React.MouseEvent) {
-    if (!seekRef.current || !duration) return;
-    const rect = seekRef.current.getBoundingClientRect();
-    const ratio = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
-    seek(ratio * duration);
+  function ratioFromEvent(ref: React.RefObject<HTMLDivElement | null>, e: { clientX: number }) {
+    const el = ref.current;
+    if (!el) return 0;
+    const rect = el.getBoundingClientRect();
+    return Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
   }
 
-  function handleVolClick(e: React.MouseEvent) {
-    if (!volRef.current) return;
-    const rect = volRef.current.getBoundingClientRect();
-    const ratio = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
-    setVolume(ratio);
+  function dragHandlers(ref: React.RefObject<HTMLDivElement | null>, onRatio: (ratio: number) => void, enabled = true) {
+    return {
+      onPointerDown: (e: React.PointerEvent<HTMLDivElement>) => {
+        if (!enabled) return;
+        e.currentTarget.setPointerCapture(e.pointerId);
+        onRatio(ratioFromEvent(ref, e));
+      },
+      onPointerMove: (e: React.PointerEvent<HTMLDivElement>) => {
+        if (!enabled || e.buttons !== 1) return;
+        onRatio(ratioFromEvent(ref, e));
+      },
+    };
   }
+
+  const seekDrag = dragHandlers(seekRef, (ratio) => seek(ratio * duration), duration > 0);
+  const volDrag = dragHandlers(volRef, setVolume);
 
   return (
     <div className="player">
@@ -69,7 +79,7 @@ export default function PlayerBar({ player, lang }: Props) {
         </div>
         <div className="seek-row">
           <span className="seek-time mono">{formatDuration(currentTime)}</span>
-          <div className="seek-track" ref={seekRef} onClick={handleSeekClick}>
+          <div className="seek-track" ref={seekRef} {...seekDrag}>
             <div className="seek-fill" style={{ width: `${progress * 100}%` }} />
             <div className="seek-knob" style={{ left: `${progress * 100}%` }} />
           </div>
@@ -81,7 +91,7 @@ export default function PlayerBar({ player, lang }: Props) {
         <button className="tbtn" aria-label="Volumen">
           <IconVolume />
         </button>
-        <div className="vol-track" ref={volRef} onClick={handleVolClick}>
+        <div className="vol-track" ref={volRef} {...volDrag}>
           <div className="vol-fill" style={{ width: `${volume * 100}%` }} />
           <div className="vol-knob" style={{ left: `${volume * 100}%` }} />
         </div>

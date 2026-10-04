@@ -341,7 +341,7 @@ h1.page-title{
 .tbtn:hover:not(:disabled){color:var(--text);}
 .seek-row{display:flex;align-items:center;gap:8px;width:100%;max-width:460px;}
 .seek-time{font-size:11px;color:var(--text-muted);width:34px;text-align:center;flex:none;}
-.seek-track{flex:1;height:4px;border-radius:999px;background:var(--border);position:relative;cursor:pointer;}
+.seek-track{flex:1;height:4px;border-radius:999px;background:var(--border);position:relative;cursor:pointer;touch-action:none;}
 .seek-fill{position:absolute;inset:0 auto 0 0;background:var(--accent);border-radius:999px;}
 .seek-track .seek-knob{
   position:absolute;top:50%;width:9px;height:9px;border-radius:50%;
@@ -350,7 +350,7 @@ h1.page-title{
 
 .aux-controls{display:flex;align-items:center;justify-content:flex-end;gap:14px;}
 .aux-controls .tbtn svg{width:19px;height:19px;}
-.vol-track{width:130px;height:6px;border-radius:999px;background:var(--border);position:relative;cursor:pointer;}
+.vol-track{width:130px;height:6px;border-radius:999px;background:var(--border);position:relative;cursor:pointer;touch-action:none;}
 .vol-fill{position:absolute;inset:0 auto 0 0;background:var(--accent);border-radius:999px;}
 .vol-track .vol-knob{
   position:absolute;top:50%;width:12px;height:12px;border-radius:50%;
