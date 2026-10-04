@@ -46,6 +46,7 @@ pub fn run() {
             commands::remove_song_from_playlist,
             commands::get_settings,
             commands::set_settings,
+            commands::fetch_covers,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

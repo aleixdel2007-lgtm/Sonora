@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import "./App.css";
 import { api } from "./api";
 import EditSongModal from "./components/EditSongModal";
+import FetchCoversModal from "./components/FetchCoversModal";
 import LibraryView from "./components/LibraryView";
 import NewPlaylistModal from "./components/NewPlaylistModal";
 import PlayerBar from "./components/PlayerBar";
@@ -22,6 +23,7 @@ function App() {
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [modal, setModal] = useState<{ mode: "create" } | { mode: "edit"; playlist: Playlist } | null>(null);
   const [editingSong, setEditingSong] = useState<Song | null>(null);
+  const [fetchCoversOpen, setFetchCoversOpen] = useState(false);
   const player = usePlayer();
 
   useEffect(() => {
@@ -116,6 +118,7 @@ function App() {
           onAddSongs={handleAddSongs}
           onAddToPlaylist={handleAddSongToPlaylist}
           onEditSong={setEditingSong}
+          onFetchCovers={() => setFetchCoversOpen(true)}
           lang={lang}
         />
       )}
@@ -166,6 +169,14 @@ function App() {
           setEditingSong(null);
           refreshSongs();
         }}
+        lang={lang}
+      />
+
+      <FetchCoversModal
+        open={fetchCoversOpen}
+        songsWithoutCover={songs.filter((s) => !s.cover_path)}
+        onClose={() => setFetchCoversOpen(false)}
+        onDone={refreshSongs}
         lang={lang}
       />
     </div>

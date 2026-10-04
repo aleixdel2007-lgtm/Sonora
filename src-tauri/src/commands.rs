@@ -1,10 +1,12 @@
 use std::fs;
 use std::path::PathBuf;
+use std::time::Duration;
 
 use lofty::file::{AudioFile, TaggedFileExt};
 use lofty::tag::Accessor;
 use rusqlite::params;
-use tauri::{AppHandle, State};
+use serde::{Deserialize, Serialize};
+use tauri::{AppHandle, Emitter, State};
 use tauri_plugin_dialog::DialogExt;
 use uuid::Uuid;
 
@@ -409,4 +411,188 @@ pub fn set_settings(db: State<Db>, settings: Settings) -> Result<(), String> {
         .map_err(|e| e.to_string())?;
     }
     Ok(())
+}
+
+#[derive(Debug, Serialize, Clone)]
+pub struct CoverFetchSummary {
+    pub found: i64,
+    pub not_found: i64,
+}
+
+#[derive(Debug, Serialize, Clone)]
+struct CoverFetchProgress {
+    current: usize,
+    total: usize,
+    title: String,
+}
+
+const UNKNOWN_ARTIST: &str = "Artista desconocido";
+
+#[derive(Debug, Deserialize)]
+struct ItunesSearchResponse {
+    results: Vec<ItunesSearchResult>,
+}
+
+#[derive(Debug, Deserialize)]
+struct ItunesSearchResult {
+    #[serde(rename = "artworkUrl100")]
+    artwork_url_100: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MusicBrainzSearchResponse {
+    recordings: Vec<MusicBrainzRecording>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MusicBrainzRecording {
+    releases: Option<Vec<MusicBrainzRelease>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MusicBrainzRelease {
+    id: String,
+}
+
+/// When the file had no real tag, `artist` falls back to [`UNKNOWN_ARTIST`] — including it
+/// in the search only hurts matching, so in that case we search by title alone.
+fn search_term(artist: &str, title: &str) -> String {
+    if artist.trim().is_empty() || artist == UNKNOWN_ARTIST {
+        title.to_string()
+    } else {
+        format!("{artist} {title}")
+    }
+}
+
+async fn find_itunes_artwork_url(client: &reqwest::Client, artist: &str, title: &str) -> Option<String> {
+    let term = search_term(artist, title);
+    let resp = client
+        .get("https://itunes.apple.com/search")
+        .query(&[("term", term.as_str()), ("entity", "song"), ("limit", "1")])
+        .send()
+        .await
+        .ok()?;
+    let parsed = resp.json::<ItunesSearchResponse>().await.ok()?;
+    let url = parsed.results.into_iter().next()?.artwork_url_100?;
+    // The default thumbnail is tiny; iTunes serves larger artwork at the same
+    // path with the resolution token swapped out.
+    Some(url.replace("100x100bb", "600x600bb"))
+}
+
+/// Looks up a matching recording on MusicBrainz and returns a release id to query
+/// the Cover Art Archive with. Used as a fallback when iTunes has no match.
+async fn find_musicbrainz_release_id(client: &reqwest::Client, artist: &str, title: &str) -> Option<String> {
+    let query = if artist.trim().is_empty() || artist == UNKNOWN_ARTIST {
+        format!("recording:\"{title}\"")
+    } else {
+        format!("artist:\"{artist}\" AND recording:\"{title}\"")
+    };
+    let resp = client
+        .get("https://musicbrainz.org/ws/2/recording/")
+        .query(&[("query", query.as_str()), ("fmt", "json"), ("limit", "1")])
+        .send()
+        .await
+        .ok()?;
+    let parsed = resp.json::<MusicBrainzSearchResponse>().await.ok()?;
+    let recording = parsed.recordings.into_iter().next()?;
+    let release = recording.releases?.into_iter().next()?;
+    Some(release.id)
+}
+
+async fn find_cover_art_archive_bytes(client: &reqwest::Client, release_id: &str) -> Option<Vec<u8>> {
+    let resp = client
+        .get(format!("https://coverartarchive.org/release/{release_id}/front"))
+        .send()
+        .await
+        .ok()?;
+    if !resp.status().is_success() {
+        return None;
+    }
+    resp.bytes().await.ok().map(|b| b.to_vec())
+}
+
+/// Tries iTunes first, then falls back to MusicBrainz + the Cover Art Archive.
+/// Returns the image bytes and whether MusicBrainz's search endpoint was hit
+/// (so the caller can back off its rate limit).
+async fn find_cover_bytes(client: &reqwest::Client, artist: &str, title: &str) -> (Option<Vec<u8>>, bool) {
+    if let Some(url) = find_itunes_artwork_url(client, artist, title).await {
+        if let Ok(resp) = client.get(&url).send().await {
+            if let Ok(bytes) = resp.bytes().await {
+                return (Some(bytes.to_vec()), false);
+            }
+        }
+    }
+
+    match find_musicbrainz_release_id(client, artist, title).await {
+        Some(release_id) => (find_cover_art_archive_bytes(client, &release_id).await, true),
+        None => (None, true),
+    }
+}
+
+#[tauri::command]
+pub async fn fetch_covers(
+    app: AppHandle,
+    db: State<'_, Db>,
+    paths: State<'_, AppPaths>,
+    song_ids: Vec<String>,
+) -> Result<CoverFetchSummary, String> {
+    let total = song_ids.len();
+    let client = reqwest::Client::builder()
+        .user_agent("Sonora/0.3.0 (desktop music player)")
+        .build()
+        .map_err(|e| e.to_string())?;
+    let mut found = 0i64;
+    let mut not_found = 0i64;
+
+    for (i, song_id) in song_ids.iter().enumerate() {
+        let (title, artist) = {
+            let conn = db.0.lock().map_err(|e| e.to_string())?;
+            conn.query_row(
+                "SELECT title, artist FROM songs WHERE id = ?1",
+                params![song_id],
+                |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?)),
+            )
+            .map_err(|e| e.to_string())?
+        };
+
+        let _ = app.emit(
+            "cover-fetch-progress",
+            CoverFetchProgress {
+                current: i + 1,
+                total,
+                title: title.clone(),
+            },
+        );
+
+        let (bytes, hit_musicbrainz) = find_cover_bytes(&client, &artist, &title).await;
+
+        let saved = match bytes {
+            Some(bytes) => {
+                let dest = paths.covers_dir.join(format!("{song_id}.jpg"));
+                fs::write(&dest, &bytes).is_ok() && {
+                    let conn = db.0.lock().map_err(|e| e.to_string())?;
+                    conn.execute(
+                        "UPDATE songs SET cover_path = ?1 WHERE id = ?2",
+                        params![dest.to_string_lossy().into_owned(), song_id],
+                    )
+                    .map_err(|e| e.to_string())?;
+                    true
+                }
+            }
+            None => false,
+        };
+
+        if saved {
+            found += 1;
+        } else {
+            not_found += 1;
+        }
+
+        // MusicBrainz asks anonymous clients to stay under ~1 request/second;
+        // iTunes has no such requirement, so we only slow down when we used it.
+        let delay = if hit_musicbrainz { 1000 } else { 150 };
+        tokio::time::sleep(Duration::from_millis(delay)).await;
+    }
+
+    Ok(CoverFetchSummary { found, not_found })
 }

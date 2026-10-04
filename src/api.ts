@@ -24,4 +24,7 @@ export const api = {
 
   getSettings: () => invoke<Settings>("get_settings"),
   setSettings: (settings: Settings) => invoke<void>("set_settings", { settings }),
+
+  fetchCovers: (songIds: string[]) =>
+    invoke<{ found: number; not_found: number }>("fetch_covers", { songIds }),
 };

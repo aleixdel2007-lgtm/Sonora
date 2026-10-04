@@ -79,6 +79,27 @@ export const IconUpload = (p: IconProps) => (
   </svg>
 );
 
+export const IconCoverSearch = (p: IconProps) => (
+  <svg viewBox="0 0 24 24" className={p.className} fill="none" stroke="currentColor" strokeWidth="1.8">
+    <rect x="3" y="3" width="18" height="18" rx="2.5" />
+    <circle cx="9" cy="9" r="1.8" fill="currentColor" stroke="none" />
+    <path d="M21 16l-5.2-5.2a1.8 1.8 0 00-2.5 0L5 19" />
+  </svg>
+);
+
+export const IconWarning = (p: IconProps) => (
+  <svg viewBox="0 0 24 24" className={p.className} fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M12 9v4M12 17h.01" />
+    <path d="M10.3 3.9L2.5 17a2 2 0 001.7 3h15.6a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z" />
+  </svg>
+);
+
+export const IconCheckCircle = (p: IconProps) => (
+  <svg viewBox="0 0 24 24" className={p.className} fill="none" stroke="currentColor" strokeWidth="2.2">
+    <path d="M20 6L9 17l-5-5" />
+  </svg>
+);
+
 export const IconEdit = (p: IconProps) => (
   <svg viewBox="0 0 24 24" className={p.className} fill="none" stroke="currentColor" strokeWidth="1.8">
     <path d="M12 20h9" />

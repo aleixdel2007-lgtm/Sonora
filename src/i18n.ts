@@ -75,7 +75,19 @@ type Key =
   | "modal.noSongsToPick"
   | "modal.songsSelected"
   | "modal.selectAll"
-  | "modal.deselectAll";
+  | "modal.deselectAll"
+  | "coverFetch.button"
+  | "coverFetch.title"
+  | "coverFetch.warning"
+  | "coverFetch.chooseLabel"
+  | "coverFetch.emptyNone"
+  | "coverFetch.processingWord"
+  | "coverFetch.ofWord"
+  | "coverFetch.foundWord"
+  | "coverFetch.notFoundPrefix"
+  | "coverFetch.notFoundSuffix"
+  | "coverFetch.allFoundSub"
+  | "coverFetch.close";
 
 const dict: Record<LangCode, Record<Key, string>> = {
   es: {
@@ -145,6 +157,18 @@ const dict: Record<LangCode, Record<Key, string>> = {
     "modal.songsSelected": "seleccionadas",
     "modal.selectAll": "Seleccionar todas",
     "modal.deselectAll": "Quitar selección",
+    "coverFetch.button": "Buscar carátulas",
+    "coverFetch.title": "Buscar carátulas automáticamente",
+    "coverFetch.warning": "Buscamos en internet por título y artista. La carátula encontrada no siempre será la correcta — podrás revisarlas después en cada canción.",
+    "coverFetch.chooseLabel": "Elige las canciones sin carátula",
+    "coverFetch.emptyNone": "¡Todas tus canciones ya tienen carátula!",
+    "coverFetch.processingWord": "Procesando",
+    "coverFetch.ofWord": "de",
+    "coverFetch.foundWord": "Encontradas",
+    "coverFetch.notFoundPrefix": "Las otras",
+    "coverFetch.notFoundSuffix": "no tenían una coincidencia clara. Puedes añadirlas a mano con el lápiz de cada canción.",
+    "coverFetch.allFoundSub": "¡Listo! Todas las seleccionadas tienen ya su carátula.",
+    "coverFetch.close": "Entendido",
   },
   ca: {
     "nav.library": "Biblioteca",
@@ -213,6 +237,18 @@ const dict: Record<LangCode, Record<Key, string>> = {
     "modal.songsSelected": "seleccionades",
     "modal.selectAll": "Selecciona-les totes",
     "modal.deselectAll": "Treu la selecció",
+    "coverFetch.button": "Cerca caràtules",
+    "coverFetch.title": "Cerca caràtules automàticament",
+    "coverFetch.warning": "Cerquem a internet pel títol i l'artista. La caràtula trobada no sempre serà la correcta — podràs revisar-les després a cada cançó.",
+    "coverFetch.chooseLabel": "Tria les cançons sense caràtula",
+    "coverFetch.emptyNone": "Totes les teves cançons ja tenen caràtula!",
+    "coverFetch.processingWord": "Processant",
+    "coverFetch.ofWord": "de",
+    "coverFetch.foundWord": "Trobades",
+    "coverFetch.notFoundPrefix": "Les altres",
+    "coverFetch.notFoundSuffix": "no tenien una coincidència clara. Pots afegir-les a mà amb el llapis de cada cançó.",
+    "coverFetch.allFoundSub": "Fet! Totes les seleccionades ja tenen caràtula.",
+    "coverFetch.close": "Entès",
   },
   en: {
     "nav.library": "Library",
@@ -281,6 +317,18 @@ const dict: Record<LangCode, Record<Key, string>> = {
     "modal.songsSelected": "selected",
     "modal.selectAll": "Select all",
     "modal.deselectAll": "Deselect all",
+    "coverFetch.button": "Find covers",
+    "coverFetch.title": "Find covers automatically",
+    "coverFetch.warning": "We search the internet by song title and artist. The cover found won't always be the right one — you'll be able to review them later on each song.",
+    "coverFetch.chooseLabel": "Choose the songs without a cover",
+    "coverFetch.emptyNone": "All your songs already have a cover!",
+    "coverFetch.processingWord": "Processing",
+    "coverFetch.ofWord": "of",
+    "coverFetch.foundWord": "Found",
+    "coverFetch.notFoundPrefix": "The other",
+    "coverFetch.notFoundSuffix": "had no clear match. You can add them by hand with the pencil on each song.",
+    "coverFetch.allFoundSub": "Done! All selected songs now have a cover.",
+    "coverFetch.close": "Got it",
   },
   fr: {
     "nav.library": "Bibliothèque",
@@ -349,6 +397,18 @@ const dict: Record<LangCode, Record<Key, string>> = {
     "modal.songsSelected": "sélectionnés",
     "modal.selectAll": "Tout sélectionner",
     "modal.deselectAll": "Tout désélectionner",
+    "coverFetch.button": "Chercher des pochettes",
+    "coverFetch.title": "Chercher des pochettes automatiquement",
+    "coverFetch.warning": "Nous cherchons sur internet par titre et artiste. La pochette trouvée ne sera pas toujours la bonne — vous pourrez les vérifier ensuite sur chaque titre.",
+    "coverFetch.chooseLabel": "Choisissez les titres sans pochette",
+    "coverFetch.emptyNone": "Tous vos titres ont déjà une pochette !",
+    "coverFetch.processingWord": "Traitement",
+    "coverFetch.ofWord": "sur",
+    "coverFetch.foundWord": "Trouvées",
+    "coverFetch.notFoundPrefix": "Les",
+    "coverFetch.notFoundSuffix": "autres n'avaient pas de correspondance claire. Vous pouvez les ajouter à la main avec le crayon de chaque titre.",
+    "coverFetch.allFoundSub": "Terminé ! Tous les titres sélectionnés ont maintenant une pochette.",
+    "coverFetch.close": "Compris",
   },
   de: {
     "nav.library": "Bibliothek",
@@ -417,6 +477,18 @@ const dict: Record<LangCode, Record<Key, string>> = {
     "modal.songsSelected": "ausgewählt",
     "modal.selectAll": "Alle auswählen",
     "modal.deselectAll": "Auswahl aufheben",
+    "coverFetch.button": "Cover suchen",
+    "coverFetch.title": "Cover automatisch suchen",
+    "coverFetch.warning": "Wir suchen im Internet nach Titel und Künstler. Das gefundene Cover ist nicht immer das richtige — du kannst es später bei jedem Song überprüfen.",
+    "coverFetch.chooseLabel": "Wähle die Songs ohne Cover",
+    "coverFetch.emptyNone": "Alle deine Songs haben bereits ein Cover!",
+    "coverFetch.processingWord": "Verarbeite",
+    "coverFetch.ofWord": "von",
+    "coverFetch.foundWord": "Gefunden",
+    "coverFetch.notFoundPrefix": "Die anderen",
+    "coverFetch.notFoundSuffix": "hatten keinen klaren Treffer. Du kannst sie manuell mit dem Stift bei jedem Song hinzufügen.",
+    "coverFetch.allFoundSub": "Fertig! Alle ausgewählten Songs haben jetzt ein Cover.",
+    "coverFetch.close": "Verstanden",
   },
   it: {
     "nav.library": "Libreria",
@@ -485,6 +557,18 @@ const dict: Record<LangCode, Record<Key, string>> = {
     "modal.songsSelected": "selezionati",
     "modal.selectAll": "Seleziona tutti",
     "modal.deselectAll": "Deseleziona tutti",
+    "coverFetch.button": "Cerca copertine",
+    "coverFetch.title": "Cerca copertine automaticamente",
+    "coverFetch.warning": "Cerchiamo su internet per titolo e artista. La copertina trovata non sarà sempre quella corretta — potrai rivederle dopo in ogni brano.",
+    "coverFetch.chooseLabel": "Scegli i brani senza copertina",
+    "coverFetch.emptyNone": "Tutti i tuoi brani hanno già una copertina!",
+    "coverFetch.processingWord": "Elaborazione",
+    "coverFetch.ofWord": "di",
+    "coverFetch.foundWord": "Trovate",
+    "coverFetch.notFoundPrefix": "Le altre",
+    "coverFetch.notFoundSuffix": "non avevano una corrispondenza chiara. Puoi aggiungerle a mano con la matita di ogni brano.",
+    "coverFetch.allFoundSub": "Fatto! Tutti i brani selezionati hanno ora una copertina.",
+    "coverFetch.close": "Capito",
   },
 };
 

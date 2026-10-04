@@ -1,6 +1,6 @@
 [package]
 name = "sonora"
-version = "0.2.0"
+version = "0.3.0"
 description = "A Tauri App"
 authors = ["you"]
 edition = "2021"
@@ -26,6 +26,8 @@ rusqlite = { version = "0.40.2", features = ["bundled"] }
 lofty = "0.25.4"
 tauri-plugin-dialog = "2.8.1"
 uuid = { version = "1.27.0", features = ["v4"] }
+reqwest = { version = "0.13.5", features = ["json", "query"] }
+tokio = { version = "1.53.2", features = ["time"] }
 
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration

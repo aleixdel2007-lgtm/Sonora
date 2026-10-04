@@ -1,7 +1,7 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { useMemo, useState } from "react";
 import { t } from "../i18n";
-import { IconEdit, IconPlus, IconSearch } from "../Icons";
+import { IconCoverSearch, IconEdit, IconPlus, IconSearch } from "../Icons";
 import { formatDuration, paletteFor } from "../format";
 import type { Playlist, Song } from "../types";
 import AddToPlaylistMenu from "./AddToPlaylistMenu";
@@ -14,6 +14,7 @@ interface Props {
   onAddSongs: () => void;
   onAddToPlaylist: (playlistId: string, songId: string) => void;
   onEditSong: (song: Song) => void;
+  onFetchCovers: () => void;
   lang: string;
 }
 
@@ -25,6 +26,7 @@ export default function LibraryView({
   onAddSongs,
   onAddToPlaylist,
   onEditSong,
+  onFetchCovers,
   lang,
 }: Props) {
   const [query, setQuery] = useState("");
@@ -54,6 +56,10 @@ export default function LibraryView({
             onChange={(e) => setQuery(e.target.value)}
           />
         </div>
+        <button className="btn" onClick={onFetchCovers}>
+          <IconCoverSearch />
+          {t(lang, "coverFetch.button")}
+        </button>
         <button className="btn btn-accent" onClick={onAddSongs}>
           <IconPlus />
           {t(lang, "nav.addSongs")}
