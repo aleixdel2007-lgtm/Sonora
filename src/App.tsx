@@ -81,11 +81,20 @@ function App() {
     api.getPlaylistSongs(playlistId).then(setPlaylistSongs);
   }
 
-  async function handleCreateOrEditPlaylist(name: string, coverSourcePath: string | null) {
+  async function handleCreateOrEditPlaylist(name: string, coverSourcePath: string | null, songIds: string[]) {
     if (modal?.mode === "edit") {
-      await api.updatePlaylist(modal.playlist.id, name, coverSourcePath);
+      const playlistId = modal.playlist.id;
+      await api.updatePlaylist(playlistId, name, coverSourcePath);
+      const existing = new Set(playlistSongs.map((s) => s.id));
+      const selected = new Set(songIds);
+      const toAdd = songIds.filter((id) => !existing.has(id));
+      const toRemove = [...existing].filter((id) => !selected.has(id));
+      if (toAdd.length) await api.addSongsToPlaylist(playlistId, toAdd);
+      for (const id of toRemove) await api.removeSongFromPlaylist(playlistId, id);
+      api.getPlaylistSongs(playlistId).then(setPlaylistSongs);
     } else {
-      await api.createPlaylist(name, coverSourcePath);
+      const playlist = await api.createPlaylist(name, coverSourcePath);
+      if (songIds.length) await api.addSongsToPlaylist(playlist.id, songIds);
     }
     setModal(null);
     refreshPlaylists();
@@ -141,8 +150,10 @@ function App() {
 
       <NewPlaylistModal
         open={modal !== null}
+        songs={songs}
         initialName={modal?.mode === "edit" ? modal.playlist.name : undefined}
         initialCoverPath={modal?.mode === "edit" ? modal.playlist.cover_path : undefined}
+        initialSongIds={modal?.mode === "edit" ? playlistSongs.map((s) => s.id) : undefined}
         onClose={() => setModal(null)}
         onSubmit={handleCreateOrEditPlaylist}
         lang={lang}

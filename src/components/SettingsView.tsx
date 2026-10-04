@@ -106,7 +106,7 @@ export default function SettingsView({ settings, onSave }: Props) {
                 <span className="settings-row-title">{t(lang, "settings.version")}</span>
                 <span className="settings-row-desc">{t(lang, "settings.versionDesc")}</span>
               </div>
-              <span className="version-pill mono">v0.1.0</span>
+              <span className="version-pill mono">v0.2.0</span>
             </div>
             <div className="settings-row">
               <div className="settings-row-label">

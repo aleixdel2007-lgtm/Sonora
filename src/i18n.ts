@@ -69,7 +69,13 @@ type Key =
   | "editSong.titleLabel"
   | "editSong.artistLabel"
   | "editSong.albumLabel"
-  | "editSong.uploadCover";
+  | "editSong.uploadCover"
+  | "modal.chooseSongs"
+  | "modal.chooseSongsSearch"
+  | "modal.noSongsToPick"
+  | "modal.songsSelected"
+  | "modal.selectAll"
+  | "modal.deselectAll";
 
 const dict: Record<LangCode, Record<Key, string>> = {
   es: {
@@ -133,6 +139,12 @@ const dict: Record<LangCode, Record<Key, string>> = {
     "editSong.artistLabel": "Artista",
     "editSong.albumLabel": "Álbum",
     "editSong.uploadCover": "Cambiar carátula",
+    "modal.chooseSongs": "Elige canciones (opcional)",
+    "modal.chooseSongsSearch": "Buscar en tu biblioteca…",
+    "modal.noSongsToPick": "Añade canciones a tu biblioteca primero.",
+    "modal.songsSelected": "seleccionadas",
+    "modal.selectAll": "Seleccionar todas",
+    "modal.deselectAll": "Quitar selección",
   },
   ca: {
     "nav.library": "Biblioteca",
@@ -195,6 +207,12 @@ const dict: Record<LangCode, Record<Key, string>> = {
     "editSong.artistLabel": "Artista",
     "editSong.albumLabel": "Àlbum",
     "editSong.uploadCover": "Canvia la caràtula",
+    "modal.chooseSongs": "Tria cançons (opcional)",
+    "modal.chooseSongsSearch": "Cerca a la teva biblioteca…",
+    "modal.noSongsToPick": "Afegeix cançons a la biblioteca primer.",
+    "modal.songsSelected": "seleccionades",
+    "modal.selectAll": "Selecciona-les totes",
+    "modal.deselectAll": "Treu la selecció",
   },
   en: {
     "nav.library": "Library",
@@ -257,6 +275,12 @@ const dict: Record<LangCode, Record<Key, string>> = {
     "editSong.artistLabel": "Artist",
     "editSong.albumLabel": "Album",
     "editSong.uploadCover": "Change cover",
+    "modal.chooseSongs": "Choose songs (optional)",
+    "modal.chooseSongsSearch": "Search your library…",
+    "modal.noSongsToPick": "Add songs to your library first.",
+    "modal.songsSelected": "selected",
+    "modal.selectAll": "Select all",
+    "modal.deselectAll": "Deselect all",
   },
   fr: {
     "nav.library": "Bibliothèque",
@@ -319,6 +343,12 @@ const dict: Record<LangCode, Record<Key, string>> = {
     "editSong.artistLabel": "Artiste",
     "editSong.albumLabel": "Album",
     "editSong.uploadCover": "Changer la pochette",
+    "modal.chooseSongs": "Choisir des titres (facultatif)",
+    "modal.chooseSongsSearch": "Rechercher dans votre bibliothèque…",
+    "modal.noSongsToPick": "Ajoutez d'abord des titres à votre bibliothèque.",
+    "modal.songsSelected": "sélectionnés",
+    "modal.selectAll": "Tout sélectionner",
+    "modal.deselectAll": "Tout désélectionner",
   },
   de: {
     "nav.library": "Bibliothek",
@@ -381,6 +411,12 @@ const dict: Record<LangCode, Record<Key, string>> = {
     "editSong.artistLabel": "Künstler",
     "editSong.albumLabel": "Album",
     "editSong.uploadCover": "Cover ändern",
+    "modal.chooseSongs": "Songs auswählen (optional)",
+    "modal.chooseSongsSearch": "In deiner Bibliothek suchen…",
+    "modal.noSongsToPick": "Füge zuerst Songs zu deiner Bibliothek hinzu.",
+    "modal.songsSelected": "ausgewählt",
+    "modal.selectAll": "Alle auswählen",
+    "modal.deselectAll": "Auswahl aufheben",
   },
   it: {
     "nav.library": "Libreria",
@@ -443,6 +479,12 @@ const dict: Record<LangCode, Record<Key, string>> = {
     "editSong.artistLabel": "Artista",
     "editSong.albumLabel": "Album",
     "editSong.uploadCover": "Cambia copertina",
+    "modal.chooseSongs": "Scegli brani (opzionale)",
+    "modal.chooseSongsSearch": "Cerca nella tua libreria…",
+    "modal.noSongsToPick": "Aggiungi prima dei brani alla tua libreria.",
+    "modal.songsSelected": "selezionati",
+    "modal.selectAll": "Seleziona tutti",
+    "modal.deselectAll": "Deseleziona tutti",
   },
 };
 
