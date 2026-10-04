@@ -1,0 +1,758 @@
+<!doctype html>
+<title>Sonora</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root{
+    --bg:#EEF0F6;
+    --surface:#FFFFFF;
+    --surface-2:#F6F7FB;
+    --text:#1A1C27;
+    --text-muted:#5B5F72;
+    --border:#DBDEE8;
+    --accent:#D98A1F;
+    --accent-strong:#B86E0C;
+    --accent-soft:#FBE7C6;
+    --accent-ink:#2A1C06;
+    --shadow: 0 1px 2px rgba(20,22,35,.04), 0 8px 24px rgba(20,22,35,.06);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#14151D;
+      --surface:#1B1D27;
+      --surface-2:#20222D;
+      --text:#EEEFF4;
+      --text-muted:#9497AC;
+      --border:#2B2E3B;
+      --accent:#EFA73E;
+      --accent-strong:#FFC266;
+      --accent-soft:#3C2B10;
+      --accent-ink:#2A1C06;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 32px rgba(0,0,0,.45);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#14151D;
+    --surface:#1B1D27;
+    --surface-2:#20222D;
+    --text:#EEEFF4;
+    --text-muted:#9497AC;
+    --border:#2B2E3B;
+    --accent:#EFA73E;
+    --accent-strong:#FFC266;
+    --accent-soft:#3C2B10;
+    --accent-ink:#2A1C06;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 32px rgba(0,0,0,.45);
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:"IBM Plex Sans", system-ui, sans-serif;
+    font-size:14px;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3{text-wrap:balance;}
+  .mono{font-family:"IBM Plex Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums;}
+
+  button{font-family:inherit;cursor:pointer;}
+  input{font-family:inherit;}
+
+  /* ---------- App shell ---------- */
+  .app{
+    display:grid;
+    grid-template-columns: 236px 1fr;
+    grid-template-rows: 1fr auto;
+    grid-template-areas: "sidebar main" "player player";
+    min-height:100vh;
+  }
+
+  /* ---------- Sidebar ---------- */
+  .sidebar{
+    grid-area:sidebar;
+    background:var(--surface);
+    border-right:1px solid var(--border);
+    display:flex;
+    flex-direction:column;
+    padding:20px 14px;
+    gap:22px;
+  }
+  .brand{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:0 6px;
+  }
+  .brand-mark{
+    width:30px;height:30px;border-radius:8px;
+    background:linear-gradient(145deg, var(--accent), var(--accent-strong));
+    display:flex;align-items:center;justify-content:center;
+    flex:none;
+  }
+  .brand-mark svg{width:16px;height:16px;fill:var(--accent-ink);}
+  .brand-name{
+    font-family:"Big Shoulders", sans-serif;
+    font-weight:800;
+    font-size:22px;
+    letter-spacing:.04em;
+    text-transform:uppercase;
+  }
+
+  .nav-group{display:flex;flex-direction:column;gap:2px;}
+  .nav-label{
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:.08em;
+    color:var(--text-muted);
+    padding:0 10px;
+    margin:10px 0 4px;
+  }
+  .nav-item{
+    display:flex;align-items:center;gap:10px;
+    padding:9px 10px;
+    border-radius:8px;
+    border:none;background:transparent;
+    color:var(--text-muted);
+    font-size:14px;font-weight:500;
+    text-align:left;
+    width:100%;
+  }
+  .nav-item svg{width:17px;height:17px;flex:none;fill:none;stroke:currentColor;stroke-width:1.7;}
+  .nav-item:hover{background:var(--surface-2); color:var(--text);}
+  .nav-item.active{background:var(--accent-soft); color:var(--accent-strong); font-weight:600;}
+
+  .playlist-mini-list{display:flex;flex-direction:column;gap:1px; overflow-y:auto;}
+  .playlist-mini{
+    display:flex;align-items:center;gap:10px;
+    padding:7px 10px;border-radius:8px;
+    color:var(--text-muted); font-size:13.5px;
+    border:none;background:transparent;width:100%;text-align:left;
+  }
+  .playlist-mini:hover{background:var(--surface-2);color:var(--text);}
+  .pl-swatch{width:22px;height:22px;border-radius:6px;flex:none;}
+
+  .sidebar-foot{margin-top:auto;display:flex;flex-direction:column;gap:2px;}
+
+  /* ---------- Main ---------- */
+  .main{
+    grid-area:main;
+    overflow-y:auto;
+    padding:22px 28px 32px;
+    display:flex;
+    flex-direction:column;
+    gap:18px;
+  }
+  .main-head{
+    display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+  }
+  .search{
+    display:flex;align-items:center;gap:8px;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:8px 12px;
+    flex:1 1 260px;
+    max-width:380px;
+  }
+  .search svg{width:15px;height:15px;stroke:var(--text-muted);fill:none;stroke-width:1.8;flex:none;}
+  .search input{border:none;outline:none;background:transparent;color:var(--text);width:100%;font-size:13.5px;}
+  .search input::placeholder{color:var(--text-muted);}
+
+  .btn{
+    display:inline-flex;align-items:center;gap:7px;
+    border-radius:9px;border:1px solid var(--border);
+    background:var(--surface);color:var(--text);
+    padding:9px 14px;font-size:13.5px;font-weight:600;
+  }
+  .btn svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;}
+  .btn:hover{background:var(--surface-2);}
+  .btn-accent{
+    background:var(--accent); border-color:var(--accent); color:var(--accent-ink);
+  }
+  .btn-accent:hover{background:var(--accent-strong); border-color:var(--accent-strong);}
+  .spacer{flex:1;}
+
+  h1.page-title{
+    font-family:"Big Shoulders", sans-serif;
+    font-weight:700;
+    font-size:28px;
+    margin:0;
+    letter-spacing:.01em;
+  }
+
+  /* ---------- Library table ---------- */
+  .track-table{border-collapse:collapse;width:100%;}
+  .track-table thead th{
+    text-align:left;font-size:11px;letter-spacing:.07em;text-transform:uppercase;
+    color:var(--text-muted); font-weight:600;
+    padding:8px 12px; border-bottom:1px solid var(--border);
+  }
+  .track-table thead th.num{width:34px;text-align:center;}
+  .track-table thead th.dur{width:64px;text-align:right;padding-right:18px;}
+  .track-row td{padding:8px 12px;border-bottom:1px solid var(--border);}
+  .track-row:hover{background:var(--surface-2);}
+  .track-row.playing{background:var(--accent-soft);}
+  .track-num{text-align:center;color:var(--text-muted);width:34px;}
+  .track-row.playing .track-num{color:var(--accent-strong);}
+  .track-title-cell{display:flex;align-items:center;gap:10px;}
+  .cover-sm{
+    width:34px;height:34px;border-radius:6px;flex:none;
+    background:linear-gradient(145deg,var(--c1),var(--c2));
+  }
+  .t-title{font-weight:600;font-size:13.5px;}
+  .t-artist{font-size:12px;color:var(--text-muted);}
+  .track-album{color:var(--text-muted);font-size:13px;}
+  .track-dur{text-align:right;color:var(--text-muted);padding-right:18px !important;}
+
+  /* ---------- Playlist grid ---------- */
+  .pl-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(168px,1fr));
+    gap:18px;
+  }
+  .pl-card{
+    background:var(--surface); border:1px solid var(--border); border-radius:12px;
+    padding:14px; display:flex; flex-direction:column; gap:10px;
+    box-shadow:var(--shadow); text-align:left; color:var(--text);
+  }
+  .pl-cover{
+    width:100%;aspect-ratio:1/1;border-radius:9px;
+    background:linear-gradient(150deg,var(--c1),var(--c2));
+    display:flex;align-items:flex-end;justify-content:flex-end;padding:8px;
+  }
+  .pl-cover svg{width:22px;height:22px;fill:rgba(255,255,255,.75);}
+  .pl-name{font-weight:700;font-size:14.5px;}
+  .pl-count{font-size:12px;color:var(--text-muted);}
+  .pl-new{
+    border:1.5px dashed var(--border); background:transparent;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+    color:var(--text-muted); min-height:168px; border-radius:12px;
+  }
+  .pl-new svg{width:26px;height:26px;stroke:currentColor;fill:none;stroke-width:1.8;}
+  .pl-new:hover{border-color:var(--accent); color:var(--accent-strong);}
+
+  /* ---------- Playlist detail ---------- */
+  .pl-detail-head{display:flex;gap:20px;align-items:flex-end;flex-wrap:wrap;}
+  .pl-detail-cover{
+    width:156px;height:156px;border-radius:14px;flex:none;
+    background:linear-gradient(150deg,var(--c1),var(--c2));
+    box-shadow:var(--shadow);
+  }
+  .pl-detail-meta{display:flex;flex-direction:column;gap:6px;}
+  .pl-detail-eyebrow{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);}
+  .pl-detail-sub{color:var(--text-muted);font-size:13px;}
+  .pl-detail-actions{display:flex;gap:10px;margin-top:8px;}
+
+  /* ---------- Settings ---------- */
+  .settings-wrap{display:flex;flex-direction:column;gap:28px;max-width:560px;}
+  .settings-section{display:flex;flex-direction:column;gap:2px;}
+  .settings-section h2{
+    font-family:"Big Shoulders", sans-serif; font-weight:700; font-size:16px;
+    text-transform:uppercase; letter-spacing:.05em; color:var(--text-muted);
+    margin:0 0 8px;
+  }
+  .settings-card{
+    background:var(--surface); border:1px solid var(--border); border-radius:12px;
+    overflow:hidden;
+  }
+  .settings-row{
+    display:flex; align-items:center; justify-content:space-between; gap:16px;
+    padding:14px 16px; border-bottom:1px solid var(--border);
+  }
+  .settings-row:last-child{border-bottom:none;}
+  .settings-row-label{display:flex;flex-direction:column;gap:2px;}
+  .settings-row-title{font-weight:600;font-size:13.5px;}
+  .settings-row-desc{font-size:12px;color:var(--text-muted);}
+
+  .seg-control{
+    display:flex; background:var(--surface-2); border:1px solid var(--border);
+    border-radius:9px; padding:3px; flex:none;
+  }
+  .seg-btn{
+    border:none; background:transparent; color:var(--text-muted);
+    font-size:12.5px; font-weight:600; padding:6px 12px; border-radius:7px;
+  }
+  .seg-btn.active{background:var(--accent); color:var(--accent-ink);}
+  .seg-btn:hover:not(.active){color:var(--text);}
+
+  .select{
+    appearance:none; background:var(--surface-2); border:1px solid var(--border);
+    border-radius:8px; padding:8px 30px 8px 12px; font-size:13px; color:var(--text);
+    font-weight:500;
+    background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%235B5F72" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>');
+    background-repeat:no-repeat; background-position:right 10px center; background-size:14px;
+  }
+  .version-pill{
+    font-family:"Big Shoulders", sans-serif; font-weight:700; font-size:13px;
+    background:var(--accent-soft); color:var(--accent-strong); padding:5px 10px; border-radius:7px;
+  }
+
+  /* compact density */
+  .density-compact .track-row td{padding:4px 12px;}
+  .density-compact .cover-sm{width:26px;height:26px;}
+  .density-compact .t-title{font-size:12.5px;}
+  .density-compact .t-artist{font-size:11px;}
+
+  /* ---------- Player bar ---------- */
+  .player{
+    grid-area:player;
+    background:var(--surface);
+    border-top:1px solid var(--border);
+    display:grid;
+    grid-template-columns: 240px 1fr 280px;
+    align-items:center;
+    gap:16px;
+    padding:10px 18px;
+  }
+  .now-playing{display:flex;align-items:center;gap:10px;min-width:0;}
+  .now-cover{width:46px;height:46px;border-radius:8px;flex:none;background:linear-gradient(145deg,var(--c1),var(--c2));}
+  .now-meta{min-width:0;overflow:hidden;}
+  .now-title{font-weight:600;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .now-artist{font-size:12px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+  .transport{display:flex;flex-direction:column;align-items:center;gap:6px;}
+  .transport-btns{display:flex;align-items:center;gap:14px;}
+  .tbtn{background:transparent;border:none;color:var(--text-muted);padding:4px;}
+  .tbtn svg{width:16px;height:16px;fill:currentColor;}
+  .tbtn.play{
+    width:32px;height:32px;border-radius:50%;background:var(--accent);
+    color:var(--accent-ink); display:flex;align-items:center;justify-content:center;
+  }
+  .tbtn.play svg{width:14px;height:14px;}
+  .tbtn:hover{color:var(--text);}
+  .seek-row{display:flex;align-items:center;gap:8px;width:100%;max-width:460px;}
+  .seek-time{font-size:11px;color:var(--text-muted);width:34px;text-align:center;flex:none;}
+  .seek-track{flex:1;height:4px;border-radius:999px;background:var(--border);position:relative;}
+  .seek-fill{position:absolute;inset:0 auto 0 0;width:38%;background:var(--accent);border-radius:999px;}
+  .seek-track::after{
+    content:"";position:absolute;left:38%;top:50%;width:9px;height:9px;border-radius:50%;
+    background:var(--accent-strong); transform:translate(-50%,-50%);
+  }
+
+  .aux-controls{display:flex;align-items:center;justify-content:flex-end;gap:14px;}
+  .aux-controls .tbtn svg{width:19px;height:19px;}
+  .vol-track{width:130px;height:6px;border-radius:999px;background:var(--border);position:relative;}
+  .vol-fill{position:absolute;inset:0 auto 0 0;width:64%;background:var(--accent);border-radius:999px;}
+  .vol-track::after{
+    content:"";position:absolute;left:64%;top:50%;width:12px;height:12px;border-radius:50%;
+    background:var(--accent-strong); transform:translate(-50%,-50%);
+    box-shadow:0 1px 3px rgba(0,0,0,.25);
+  }
+
+  /* ---------- Modal ---------- */
+  .modal-backdrop{
+    position:fixed;inset:0;background:rgba(10,10,16,.5);
+    display:none; align-items:center; justify-content:center; z-index:50;
+  }
+  .modal-backdrop.open{display:flex;}
+  .modal{
+    background:var(--surface); border-radius:14px; padding:22px;
+    width:min(360px, calc(100vw - 32px)); box-shadow:var(--shadow);
+    display:flex;flex-direction:column;gap:14px;
+  }
+  .modal h3{margin:0;font-family:"Big Shoulders",sans-serif;font-size:20px;font-weight:700;}
+  .upload-box{
+    border:1.5px dashed var(--border); border-radius:12px; height:120px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+    color:var(--text-muted); font-size:12.5px;
+  }
+  .upload-box svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.7;}
+  .field{display:flex;flex-direction:column;gap:6px;}
+  .field label{font-size:12px;color:var(--text-muted);}
+  .field input[type="text"]{
+    border:1px solid var(--border); border-radius:8px; padding:9px 11px;
+    background:var(--surface-2); color:var(--text); font-size:13.5px; outline:none;
+  }
+  .field input[type="text"]:focus{border-color:var(--accent);}
+  .modal-actions{display:flex;justify-content:flex-end;gap:10px;}
+
+  [hidden]{display:none !important;}
+
+  @media (max-width:680px){
+    .app{grid-template-columns:1fr; grid-template-areas:"main" "player";}
+    .sidebar{display:none;}
+    .player{grid-template-columns:1fr; grid-template-rows:auto auto auto; gap:8px;}
+    .aux-controls{justify-content:center;}
+  }
+</style>
+
+<div class="app" id="app" data-theme="">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="brand-mark">
+        <svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+      </span>
+      <span class="brand-name">Sonora</span>
+    </div>
+
+    <nav class="nav-group">
+      <button class="nav-item active" data-view="library">
+        <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+        Biblioteca
+      </button>
+      <button class="nav-item" data-view="playlists">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+        Playlists
+      </button>
+      <button class="nav-item" id="btn-add-songs">
+        <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+        Añadir canciones
+      </button>
+    </nav>
+
+    <div class="nav-group" style="flex:1;min-height:0;display:flex;flex-direction:column;">
+      <div class="nav-label">Tus playlists</div>
+      <div class="playlist-mini-list" id="sidebar-playlists"></div>
+    </div>
+
+    <div class="sidebar-foot">
+      <button class="nav-item" data-view="settings">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33h0a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51h0a1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82v0a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+        Ajustes
+      </button>
+    </div>
+  </aside>
+
+  <!-- MAIN: LIBRARY -->
+  <main class="main" id="view-library">
+    <div class="main-head">
+      <h1 class="page-title">Biblioteca</h1>
+      <div class="spacer"></div>
+      <div class="search">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <input type="text" placeholder="Buscar canción, artista o álbum…" id="search-input">
+      </div>
+      <button class="btn btn-accent" id="btn-add-songs-2">
+        <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+        Añadir canciones
+      </button>
+    </div>
+
+    <table class="track-table">
+      <thead>
+        <tr>
+          <th class="num">#</th>
+          <th>Título</th>
+          <th>Álbum</th>
+          <th class="dur">Duración</th>
+        </tr>
+      </thead>
+      <tbody id="track-rows"></tbody>
+    </table>
+  </main>
+
+  <!-- MAIN: PLAYLISTS GRID -->
+  <main class="main" id="view-playlists" hidden>
+    <div class="main-head">
+      <h1 class="page-title">Playlists</h1>
+    </div>
+    <div class="pl-grid" id="playlist-grid"></div>
+  </main>
+
+  <!-- MAIN: PLAYLIST DETAIL -->
+  <main class="main" id="view-playlist-detail" hidden>
+    <div class="pl-detail-head">
+      <div class="pl-detail-cover" id="detail-cover"></div>
+      <div class="pl-detail-meta">
+        <span class="pl-detail-eyebrow">Playlist</span>
+        <h1 class="page-title" id="detail-name">Para programar</h1>
+        <span class="pl-detail-sub" id="detail-sub">12 canciones · 48 min</span>
+        <div class="pl-detail-actions">
+          <button class="btn btn-accent">
+            <svg viewBox="0 0 24 24"><path d="M6 4l14 8-14 8z" fill="currentColor" stroke="none"/></svg>
+            Reproducir todo
+          </button>
+          <button class="btn">Editar</button>
+          <button class="btn" id="btn-back-playlists">← Volver</button>
+        </div>
+      </div>
+    </div>
+    <table class="track-table">
+      <thead>
+        <tr><th class="num">#</th><th>Título</th><th>Álbum</th><th class="dur">Duración</th></tr>
+      </thead>
+      <tbody id="detail-track-rows"></tbody>
+    </table>
+  </main>
+
+  <!-- MAIN: SETTINGS -->
+  <main class="main" id="view-settings" hidden>
+    <div class="main-head">
+      <h1 class="page-title">Ajustes</h1>
+    </div>
+
+    <div class="settings-wrap">
+      <div class="settings-section">
+        <h2>Apariencia</h2>
+        <div class="settings-card">
+          <div class="settings-row">
+            <div class="settings-row-label">
+              <span class="settings-row-title">Tema</span>
+              <span class="settings-row-desc">Elige cómo se ve Sonora</span>
+            </div>
+            <div class="seg-control" id="seg-theme">
+              <button class="seg-btn" data-theme-choice="light">Claro</button>
+              <button class="seg-btn" data-theme-choice="dark">Oscuro</button>
+              <button class="seg-btn" data-theme-choice="auto">Automático</button>
+            </div>
+          </div>
+          <div class="settings-row">
+            <div class="settings-row-label">
+              <span class="settings-row-title">Idioma</span>
+              <span class="settings-row-desc">Idioma de los menús y textos</span>
+            </div>
+            <select class="select" id="select-language">
+              <option>Español</option>
+              <option>Català</option>
+              <option>English</option>
+              <option>Français</option>
+              <option>Deutsch</option>
+              <option>Italiano</option>
+            </select>
+          </div>
+          <div class="settings-row">
+            <div class="settings-row-label">
+              <span class="settings-row-title">Densidad de la lista</span>
+              <span class="settings-row-desc">Espaciado de las filas en Biblioteca y playlists</span>
+            </div>
+            <div class="seg-control" id="seg-density">
+              <button class="seg-btn" data-density-choice="comfortable">Cómoda</button>
+              <button class="seg-btn" data-density-choice="compact">Compacta</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h2>Acerca de</h2>
+        <div class="settings-card">
+          <div class="settings-row">
+            <div class="settings-row-label">
+              <span class="settings-row-title">Versión</span>
+              <span class="settings-row-desc">Sonora para escritorio</span>
+            </div>
+            <span class="version-pill mono">v0.1.0</span>
+          </div>
+          <div class="settings-row">
+            <div class="settings-row-label">
+              <span class="settings-row-title">Actualizaciones</span>
+              <span class="settings-row-desc">Comprueba si hay una versión nueva</span>
+            </div>
+            <button class="btn">Buscar actualizaciones</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- PLAYER BAR -->
+  <div class="player">
+    <div class="now-playing">
+      <div class="now-cover" style="--c1:#E9A23B; --c2:#B86E0C;"></div>
+      <div class="now-meta">
+        <div class="now-title">Luz de Neón</div>
+        <div class="now-artist">Nocturna Collective</div>
+      </div>
+    </div>
+
+    <div class="transport">
+      <div class="transport-btns">
+        <button class="tbtn" aria-label="Aleatorio">
+          <svg viewBox="0 0 24 24"><path d="M3 6h4l9 12h5M3 18h4l9-12h5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+        </button>
+        <button class="tbtn" aria-label="Anterior">
+          <svg viewBox="0 0 24 24"><path d="M6 5v14M18 6l-10 6 10 6z"/></svg>
+        </button>
+        <button class="tbtn play" aria-label="Reproducir">
+          <svg viewBox="0 0 24 24"><path d="M6 4l14 8-14 8z"/></svg>
+        </button>
+        <button class="tbtn" aria-label="Siguiente">
+          <svg viewBox="0 0 24 24"><path d="M18 5v14M6 6l10 6-10 6z"/></svg>
+        </button>
+        <button class="tbtn" aria-label="Repetir">
+          <svg viewBox="0 0 24 24"><path d="M17 2l4 4-4 4M3 11V9a4 4 0 014-4h14M7 22l-4-4 4-4M21 13v2a4 4 0 01-4 4H3" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+        </button>
+      </div>
+      <div class="seek-row">
+        <span class="seek-time mono">1:34</span>
+        <div class="seek-track"><div class="seek-fill"></div></div>
+        <span class="seek-time mono">4:15</span>
+      </div>
+    </div>
+
+    <div class="aux-controls">
+      <button class="tbtn" aria-label="Volumen">
+        <svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 5V4L8 9z"/><path d="M17 8a5 5 0 010 8" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+      </button>
+      <div class="vol-track"><div class="vol-fill"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: nueva playlist -->
+<div class="modal-backdrop" id="modal-backdrop">
+  <div class="modal">
+    <h3>Nueva playlist</h3>
+    <div class="upload-box">
+      <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="15" rx="2"/><circle cx="12" cy="12.5" r="3.2"/><path d="M8 5l1.5-2h5L16 5"/></svg>
+      Subir foto de portada
+    </div>
+    <div class="field">
+      <label for="pl-name-input">Nombre de la playlist</label>
+      <input type="text" id="pl-name-input" placeholder="Ej. Para programar">
+    </div>
+    <div class="modal-actions">
+      <button class="btn" id="btn-cancel-modal">Cancelar</button>
+      <button class="btn btn-accent" id="btn-create-modal">Crear</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ---- theme ----
+  const root = document.getElementById('app');
+  let savedTheme = null;
+  try { savedTheme = localStorage.getItem('sonora-theme'); } catch(e) {}
+  const themeChoice = savedTheme || 'auto';
+  if (themeChoice !== 'auto') root.setAttribute('data-theme', themeChoice);
+
+  function applyThemeChoice(choice){
+    if (choice === 'auto') root.removeAttribute('data-theme');
+    else root.setAttribute('data-theme', choice);
+    try { localStorage.setItem('sonora-theme', choice); } catch(e) {}
+    document.querySelectorAll('#seg-theme .seg-btn').forEach(b =>
+      b.classList.toggle('active', b.dataset.themeChoice === choice));
+  }
+  document.getElementById('seg-theme').addEventListener('click', e => {
+    const b = e.target.closest('.seg-btn');
+    if (b) applyThemeChoice(b.dataset.themeChoice);
+  });
+  applyThemeChoice(themeChoice);
+
+  // ---- density ----
+  let savedDensity = null;
+  try { savedDensity = localStorage.getItem('sonora-density'); } catch(e) {}
+  function applyDensity(choice){
+    document.body.classList.toggle('density-compact', choice === 'compact');
+    try { localStorage.setItem('sonora-density', choice); } catch(e) {}
+    document.querySelectorAll('#seg-density .seg-btn').forEach(b =>
+      b.classList.toggle('active', b.dataset.densityChoice === choice));
+  }
+  document.getElementById('seg-density').addEventListener('click', e => {
+    const b = e.target.closest('.seg-btn');
+    if (b) applyDensity(b.dataset.densityChoice);
+  });
+  applyDensity(savedDensity || 'comfortable');
+
+  // ---- sample data ----
+  const palettes = [
+    ['#E9A23B','#B86E0C'], ['#6C8CF5','#3B52B4'], ['#6FC0A6','#2E8468'],
+    ['#E07AC0','#A9448F'], ['#8C8CF0','#4F4FBF'], ['#E4B23B','#9E6A10']
+  ];
+  const library = [
+    { title:'Deriva', artist:'Marea Baja', album:'Costa Sur', dur:'3:42' },
+    { title:'Luz de Neón', artist:'Nocturna Collective', album:'Vigilia', dur:'4:15' },
+    { title:'Polvo de Estrellas', artist:'Hélix', album:'Órbita', dur:'3:58' },
+    { title:'Cables Sueltos', artist:'Radio Fantasma', album:'Frecuencia Baja', dur:'2:51' },
+    { title:'Andén 5', artist:'Marea Baja', album:'Costa Sur', dur:'4:30' },
+    { title:'Vidrio', artist:'Hélix', album:'Órbita', dur:'3:20' },
+    { title:'Monzón', artist:'Nocturna Collective', album:'Vigilia', dur:'5:02' },
+    { title:'Campo Magnético', artist:'Radio Fantasma', album:'Frecuencia Baja', dur:'3:11' },
+    { title:'Sal y Ceniza', artist:'Marea Baja', album:'Costa Sur', dur:'3:35' },
+    { title:'Último Tren', artist:'Hélix', album:'Órbita', dur:'4:44' },
+  ];
+  const playlists = [
+    { name:'Para programar', count:12, mins:48 },
+    { name:'Domingo lento', count:8, mins:31 },
+    { name:'Carretera', count:20, mins:76 },
+    { name:'Favoritas 2026', count:34, mins:128 },
+  ];
+
+  function rowsHtml(tracks, playingIdx){
+    return tracks.map((t,i) => {
+      const [c1,c2] = palettes[i % palettes.length];
+      return `<tr class="track-row ${i===playingIdx?'playing':''}">
+        <td class="track-num mono">${i+1}</td>
+        <td><div class="track-title-cell">
+          <div class="cover-sm" style="--c1:${c1};--c2:${c2};"></div>
+          <div><div class="t-title">${t.title}</div><div class="t-artist">${t.artist}</div></div>
+        </div></td>
+        <td class="track-album">${t.album}</td>
+        <td class="track-dur mono">${t.dur}</td>
+      </tr>`;
+    }).join('');
+  }
+  document.getElementById('track-rows').innerHTML = rowsHtml(library, 1);
+
+  document.getElementById('playlist-grid').innerHTML = playlists.map((p,i) => {
+    const [c1,c2] = palettes[i % palettes.length];
+    return `<button class="pl-card" data-pl="${i}">
+      <div class="pl-cover" style="--c1:${c1};--c2:${c2};">
+        <svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+      </div>
+      <div class="pl-name">${p.name}</div>
+      <div class="pl-count">${p.count} canciones · ${p.mins} min</div>
+    </button>`;
+  }).join('') + `<button class="pl-new" id="btn-new-playlist-card">
+      <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+      Nueva playlist
+    </button>`;
+
+  document.getElementById('sidebar-playlists').innerHTML = playlists.map((p,i) => {
+    const [c1,c2] = palettes[i % palettes.length];
+    return `<button class="playlist-mini" data-pl="${i}">
+      <div class="pl-swatch" style="background:linear-gradient(145deg,${c1},${c2});"></div>
+      ${p.name}
+    </button>`;
+  }).join('');
+
+  // ---- view switching ----
+  const views = {
+    library: document.getElementById('view-library'),
+    playlists: document.getElementById('view-playlists'),
+    detail: document.getElementById('view-playlist-detail'),
+    settings: document.getElementById('view-settings'),
+  };
+  function showView(name){
+    Object.values(views).forEach(v => v.hidden = true);
+    views[name].hidden = false;
+    document.querySelectorAll('.nav-item[data-view]').forEach(b =>
+      b.classList.toggle('active', b.dataset.view === name));
+  }
+  document.querySelectorAll('.nav-item[data-view]').forEach(btn => {
+    btn.addEventListener('click', () => showView(btn.dataset.view));
+  });
+
+  function openPlaylist(idx){
+    const p = playlists[idx];
+    const [c1,c2] = palettes[idx % palettes.length];
+    document.getElementById('detail-cover').style.setProperty('--c1', c1);
+    document.getElementById('detail-cover').style.setProperty('--c2', c2);
+    document.getElementById('detail-name').textContent = p.name;
+    document.getElementById('detail-sub').textContent = `${p.count} canciones · ${p.mins} min`;
+    document.getElementById('detail-track-rows').innerHTML = rowsHtml(library.slice(0, Math.min(p.count, library.length)), -1);
+    showView('detail');
+  }
+  document.getElementById('playlist-grid').addEventListener('click', e => {
+    const card = e.target.closest('.pl-card');
+    if (card) openPlaylist(Number(card.dataset.pl));
+  });
+  document.getElementById('sidebar-playlists').addEventListener('click', e => {
+    const card = e.target.closest('.playlist-mini');
+    if (card) openPlaylist(Number(card.dataset.pl));
+  });
+  document.getElementById('btn-back-playlists').addEventListener('click', () => showView('playlists'));
+
+  // ---- modal ----
+  const backdrop = document.getElementById('modal-backdrop');
+  function openModal(){ backdrop.classList.add('open'); }
+  function closeModal(){ backdrop.classList.remove('open'); }
+  document.getElementById('btn-new-playlist-card').addEventListener('click', openModal);
+  document.getElementById('btn-cancel-modal').addEventListener('click', closeModal);
+  document.getElementById('btn-create-modal').addEventListener('click', closeModal);
+  backdrop.addEventListener('click', e => { if (e.target === backdrop) closeModal(); });
+</script>
