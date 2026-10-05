@@ -11,7 +11,7 @@ use tauri_plugin_dialog::DialogExt;
 use uuid::Uuid;
 
 use crate::db::Db;
-use crate::models::{Playlist, Settings, Song};
+use crate::models::{ArtistImage, Playlist, Settings, Song};
 
 pub struct AppPaths {
     pub music_dir: PathBuf,
@@ -186,6 +186,37 @@ pub fn update_song(
             params![title, artist, album, id],
         )
         .map_err(|e| e.to_string())?;
+    }
+
+    Ok(())
+}
+
+/// Deletes the song's DB row (and any playlist_songs rows pointing to it — foreign keys aren't
+/// enforced, so this must be done by hand) plus its copied audio file and cover. The user's
+/// original audio file is never touched — songs only ever hold a copy (see import_songs).
+#[tauri::command]
+pub fn delete_song(db: State<Db>, id: String) -> Result<(), String> {
+    let (file_path, cover_path): (String, Option<String>) = {
+        let conn = db.0.lock().map_err(|e| e.to_string())?;
+        conn.query_row(
+            "SELECT file_path, cover_path FROM songs WHERE id = ?1",
+            params![id],
+            |r| Ok((r.get(0)?, r.get(1)?)),
+        )
+        .map_err(|e| e.to_string())?
+    };
+
+    {
+        let conn = db.0.lock().map_err(|e| e.to_string())?;
+        conn.execute("DELETE FROM playlist_songs WHERE song_id = ?1", params![id])
+            .map_err(|e| e.to_string())?;
+        conn.execute("DELETE FROM songs WHERE id = ?1", params![id])
+            .map_err(|e| e.to_string())?;
+    }
+
+    let _ = fs::remove_file(&file_path);
+    if let Some(cover) = cover_path {
+        let _ = fs::remove_file(cover);
     }
 
     Ok(())
@@ -427,6 +458,7 @@ struct CoverFetchProgress {
 }
 
 const UNKNOWN_ARTIST: &str = "Artista desconocido";
+const UNKNOWN_ALBUM: &str = "Álbum desconocido";
 
 #[derive(Debug, Deserialize)]
 struct ItunesSearchResponse {
@@ -437,6 +469,10 @@ struct ItunesSearchResponse {
 struct ItunesSearchResult {
     #[serde(rename = "artworkUrl100")]
     artwork_url_100: Option<String>,
+    #[serde(rename = "artistName")]
+    artist_name: Option<String>,
+    #[serde(rename = "collectionName")]
+    collection_name: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -446,12 +482,29 @@ struct MusicBrainzSearchResponse {
 
 #[derive(Debug, Deserialize)]
 struct MusicBrainzRecording {
+    #[serde(rename = "artist-credit")]
+    artist_credit: Option<Vec<MusicBrainzArtistCredit>>,
     releases: Option<Vec<MusicBrainzRelease>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MusicBrainzArtistCredit {
+    name: String,
 }
 
 #[derive(Debug, Deserialize)]
 struct MusicBrainzRelease {
     id: String,
+    title: Option<String>,
+}
+
+/// What a search match found, beyond the cover art itself. Each field is filled in
+/// independently depending on what the source actually returned.
+#[derive(Debug, Default)]
+struct FoundMetadata {
+    cover_bytes: Option<Vec<u8>>,
+    artist: Option<String>,
+    album: Option<String>,
 }
 
 /// When the file had no real tag, `artist` falls back to [`UNKNOWN_ARTIST`] — including it
@@ -464,7 +517,7 @@ fn search_term(artist: &str, title: &str) -> String {
     }
 }
 
-async fn find_itunes_artwork_url(client: &reqwest::Client, artist: &str, title: &str) -> Option<String> {
+async fn find_itunes_match(client: &reqwest::Client, artist: &str, title: &str) -> Option<ItunesSearchResult> {
     let term = search_term(artist, title);
     let resp = client
         .get("https://itunes.apple.com/search")
@@ -473,15 +526,12 @@ async fn find_itunes_artwork_url(client: &reqwest::Client, artist: &str, title: 
         .await
         .ok()?;
     let parsed = resp.json::<ItunesSearchResponse>().await.ok()?;
-    let url = parsed.results.into_iter().next()?.artwork_url_100?;
-    // The default thumbnail is tiny; iTunes serves larger artwork at the same
-    // path with the resolution token swapped out.
-    Some(url.replace("100x100bb", "600x600bb"))
+    parsed.results.into_iter().next()
 }
 
-/// Looks up a matching recording on MusicBrainz and returns a release id to query
-/// the Cover Art Archive with. Used as a fallback when iTunes has no match.
-async fn find_musicbrainz_release_id(client: &reqwest::Client, artist: &str, title: &str) -> Option<String> {
+/// Looks up a matching recording on MusicBrainz. Used as a fallback when iTunes has no
+/// match, both for the cover (via the Cover Art Archive) and for artist/album names.
+async fn find_musicbrainz_match(client: &reqwest::Client, artist: &str, title: &str) -> Option<MusicBrainzRecording> {
     let query = if artist.trim().is_empty() || artist == UNKNOWN_ARTIST {
         format!("recording:\"{title}\"")
     } else {
@@ -494,9 +544,7 @@ async fn find_musicbrainz_release_id(client: &reqwest::Client, artist: &str, tit
         .await
         .ok()?;
     let parsed = resp.json::<MusicBrainzSearchResponse>().await.ok()?;
-    let recording = parsed.recordings.into_iter().next()?;
-    let release = recording.releases?.into_iter().next()?;
-    Some(release.id)
+    parsed.recordings.into_iter().next()
 }
 
 async fn find_cover_art_archive_bytes(client: &reqwest::Client, release_id: &str) -> Option<Vec<u8>> {
@@ -511,21 +559,64 @@ async fn find_cover_art_archive_bytes(client: &reqwest::Client, release_id: &str
     resp.bytes().await.ok().map(|b| b.to_vec())
 }
 
-/// Tries iTunes first, then falls back to MusicBrainz + the Cover Art Archive.
-/// Returns the image bytes and whether MusicBrainz's search endpoint was hit
-/// (so the caller can back off its rate limit).
-async fn find_cover_bytes(client: &reqwest::Client, artist: &str, title: &str) -> (Option<Vec<u8>>, bool) {
-    if let Some(url) = find_itunes_artwork_url(client, artist, title).await {
-        if let Ok(resp) = client.get(&url).send().await {
-            if let Ok(bytes) = resp.bytes().await {
-                return (Some(bytes.to_vec()), false);
+/// Tries iTunes first, then falls back to MusicBrainz + the Cover Art Archive. Besides the
+/// cover bytes, also surfaces whatever artist/album names the matched source reports — both
+/// APIs return those as part of the same search, so finding them costs no extra requests.
+/// Returns the metadata and whether MusicBrainz's search endpoint was hit (so the caller can
+/// back off its rate limit).
+async fn find_metadata(client: &reqwest::Client, artist: &str, title: &str) -> (FoundMetadata, bool) {
+    if let Some(m) = find_itunes_match(client, artist, title).await {
+        let mut found = FoundMetadata {
+            artist: m.artist_name,
+            album: m.collection_name,
+            cover_bytes: None,
+        };
+        if let Some(url) = m.artwork_url_100 {
+            // The default thumbnail is tiny; iTunes serves larger artwork at the same
+            // path with the resolution token swapped out.
+            let url = url.replace("100x100bb", "600x600bb");
+            if let Ok(resp) = client.get(&url).send().await {
+                if let Ok(bytes) = resp.bytes().await {
+                    found.cover_bytes = Some(bytes.to_vec());
+                }
             }
+        }
+        if found.cover_bytes.is_some() || found.artist.is_some() || found.album.is_some() {
+            return (found, false);
         }
     }
 
-    match find_musicbrainz_release_id(client, artist, title).await {
-        Some(release_id) => (find_cover_art_archive_bytes(client, &release_id).await, true),
-        None => (None, true),
+    match find_musicbrainz_match(client, artist, title).await {
+        Some(recording) => {
+            let found_artist = recording
+                .artist_credit
+                .map(|credits| credits.into_iter().map(|c| c.name).collect::<Vec<_>>().join(", "));
+            let release = recording.releases.and_then(|r| r.into_iter().next());
+            let found_album = release.as_ref().and_then(|r| r.title.clone());
+            let cover_bytes = match &release {
+                Some(r) => find_cover_art_archive_bytes(client, &r.id).await,
+                None => None,
+            };
+            (
+                FoundMetadata {
+                    cover_bytes,
+                    artist: found_artist,
+                    album: found_album,
+                },
+                true,
+            )
+        }
+        None => (FoundMetadata::default(), true),
+    }
+}
+
+/// Only overwrites a placeholder value — a real tag the user already has (or already edited
+/// by hand) is never replaced by a guess from an online search.
+fn resolved_value(current: &str, placeholder: &str, found: Option<String>) -> String {
+    let is_placeholder = current.trim().is_empty() || current == placeholder;
+    match found {
+        Some(value) if is_placeholder && !value.trim().is_empty() => value,
+        _ => current.to_string(),
     }
 }
 
@@ -538,19 +629,19 @@ pub async fn fetch_covers(
 ) -> Result<CoverFetchSummary, String> {
     let total = song_ids.len();
     let client = reqwest::Client::builder()
-        .user_agent("Sonora/0.3.0 (desktop music player)")
+        .user_agent("Sonora/1.0.0 (desktop music player)")
         .build()
         .map_err(|e| e.to_string())?;
     let mut found = 0i64;
     let mut not_found = 0i64;
 
     for (i, song_id) in song_ids.iter().enumerate() {
-        let (title, artist) = {
+        let (title, artist, album) = {
             let conn = db.0.lock().map_err(|e| e.to_string())?;
             conn.query_row(
-                "SELECT title, artist FROM songs WHERE id = ?1",
+                "SELECT title, artist, album FROM songs WHERE id = ?1",
                 params![song_id],
-                |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?)),
+                |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?, r.get::<_, String>(2)?)),
             )
             .map_err(|e| e.to_string())?
         };
@@ -564,23 +655,27 @@ pub async fn fetch_covers(
             },
         );
 
-        let (bytes, hit_musicbrainz) = find_cover_bytes(&client, &artist, &title).await;
+        let (metadata, hit_musicbrainz) = find_metadata(&client, &artist, &title).await;
 
-        let saved = match bytes {
+        let new_cover_path = match metadata.cover_bytes {
             Some(bytes) => {
                 let dest = paths.covers_dir.join(format!("{song_id}.jpg"));
-                fs::write(&dest, &bytes).is_ok() && {
-                    let conn = db.0.lock().map_err(|e| e.to_string())?;
-                    conn.execute(
-                        "UPDATE songs SET cover_path = ?1 WHERE id = ?2",
-                        params![dest.to_string_lossy().into_owned(), song_id],
-                    )
-                    .map_err(|e| e.to_string())?;
-                    true
-                }
+                fs::write(&dest, &bytes).ok().map(|_| dest.to_string_lossy().into_owned())
             }
-            None => false,
+            None => None,
         };
+        let resolved_artist = resolved_value(&artist, UNKNOWN_ARTIST, metadata.artist);
+        let resolved_album = resolved_value(&album, UNKNOWN_ALBUM, metadata.album);
+
+        let saved = new_cover_path.is_some();
+        if saved || resolved_artist != artist || resolved_album != album {
+            let conn = db.0.lock().map_err(|e| e.to_string())?;
+            conn.execute(
+                "UPDATE songs SET artist = ?1, album = ?2, cover_path = COALESCE(?3, cover_path) WHERE id = ?4",
+                params![resolved_artist, resolved_album, new_cover_path, song_id],
+            )
+            .map_err(|e| e.to_string())?;
+        }
 
         if saved {
             found += 1;
@@ -595,4 +690,150 @@ pub async fn fetch_covers(
     }
 
     Ok(CoverFetchSummary { found, not_found })
+}
+
+// ---------- Artist images ----------
+// "Artist" isn't a real entity in the DB (see models.rs/db.rs) — songs.artist is just a text
+// field. This table is a minimal artist-name -> image lookup, not a full artist model.
+
+#[derive(Debug, Deserialize)]
+struct DeezerArtistSearchResponse {
+    data: Vec<DeezerArtist>,
+}
+
+#[derive(Debug, Deserialize)]
+struct DeezerArtist {
+    picture_xl: Option<String>,
+    picture_big: Option<String>,
+}
+
+async fn find_deezer_artist_image_url(client: &reqwest::Client, artist: &str) -> Option<String> {
+    let resp = client
+        .get("https://api.deezer.com/search/artist")
+        .query(&[("q", artist), ("limit", "1")])
+        .send()
+        .await
+        .ok()?;
+    let parsed = resp.json::<DeezerArtistSearchResponse>().await.ok()?;
+    let first = parsed.data.into_iter().next()?;
+    first.picture_xl.or(first.picture_big)
+}
+
+/// Searches Deezer for `artist`, saves the image to `covers_dir` and upserts the
+/// `artist_images` row. Removes the previously stored file for that artist first, if any,
+/// so repeated searches don't leave orphaned files behind. Returns the new stored path.
+async fn save_artist_image(db: &State<'_, Db>, paths: &State<'_, AppPaths>, client: &reqwest::Client, artist: &str) -> Option<String> {
+    let url = find_deezer_artist_image_url(client, artist).await?;
+    let resp = client.get(&url).send().await.ok()?;
+    let bytes = resp.bytes().await.ok()?;
+
+    let previous: Option<String> = {
+        let conn = db.0.lock().ok()?;
+        conn.query_row(
+            "SELECT image_path FROM artist_images WHERE artist = ?1",
+            params![artist],
+            |r| r.get(0),
+        )
+        .ok()
+    };
+
+    let dest = paths.covers_dir.join(format!("artist-{}.jpg", Uuid::new_v4()));
+    fs::write(&dest, &bytes).ok()?;
+    let dest_str = dest.to_string_lossy().into_owned();
+
+    {
+        let conn = db.0.lock().ok()?;
+        conn.execute(
+            "INSERT INTO artist_images (artist, image_path) VALUES (?1, ?2)
+             ON CONFLICT(artist) DO UPDATE SET image_path = excluded.image_path",
+            params![artist, dest_str],
+        )
+        .ok()?;
+    }
+
+    if let Some(old) = previous {
+        if old != dest_str {
+            let _ = fs::remove_file(old);
+        }
+    }
+
+    Some(dest_str)
+}
+
+#[tauri::command]
+pub fn list_artist_images(db: State<Db>) -> Result<Vec<ArtistImage>, String> {
+    let conn = db.0.lock().map_err(|e| e.to_string())?;
+    let mut stmt = conn
+        .prepare("SELECT artist, image_path FROM artist_images")
+        .map_err(|e| e.to_string())?;
+    let images = stmt
+        .query_map([], |r| {
+            Ok(ArtistImage {
+                artist: r.get(0)?,
+                image_path: r.get(1)?,
+            })
+        })
+        .map_err(|e| e.to_string())?
+        .filter_map(|r| r.ok())
+        .collect();
+    Ok(images)
+}
+
+#[tauri::command]
+pub async fn search_artist_image(db: State<'_, Db>, paths: State<'_, AppPaths>, artist: String) -> Result<Option<String>, String> {
+    let client = reqwest::Client::builder()
+        .user_agent("Sonora/1.0.0 (desktop music player)")
+        .build()
+        .map_err(|e| e.to_string())?;
+    Ok(save_artist_image(&db, &paths, &client, &artist).await)
+}
+
+#[tauri::command]
+pub fn set_artist_image(db: State<Db>, paths: State<AppPaths>, artist: String, source_path: String) -> Result<String, String> {
+    let previous: Option<String> = {
+        let conn = db.0.lock().map_err(|e| e.to_string())?;
+        conn.query_row(
+            "SELECT image_path FROM artist_images WHERE artist = ?1",
+            params![artist],
+            |r| r.get(0),
+        )
+        .ok()
+    };
+
+    let dest_str = copy_cover_image(&paths.covers_dir, &source_path, &format!("artist-{}", Uuid::new_v4()))?;
+
+    {
+        let conn = db.0.lock().map_err(|e| e.to_string())?;
+        conn.execute(
+            "INSERT INTO artist_images (artist, image_path) VALUES (?1, ?2)
+             ON CONFLICT(artist) DO UPDATE SET image_path = excluded.image_path",
+            params![artist, dest_str],
+        )
+        .map_err(|e| e.to_string())?;
+    }
+
+    if let Some(old) = previous {
+        if old != dest_str {
+            let _ = fs::remove_file(old);
+        }
+    }
+
+    Ok(dest_str)
+}
+
+/// Only called with artist names the frontend has already determined have no stored image
+/// (see format.ts groupByArtist / ArtistsView.tsx) — existing images are never touched here.
+#[tauri::command]
+pub async fn fetch_artist_images(db: State<'_, Db>, paths: State<'_, AppPaths>, artists: Vec<String>) -> Result<(), String> {
+    let client = reqwest::Client::builder()
+        .user_agent("Sonora/1.0.0 (desktop music player)")
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    for artist in artists {
+        save_artist_image(&db, &paths, &client, &artist).await;
+        tokio::time::sleep(Duration::from_millis(150)).await;
+    }
+
+    Ok(())
 }

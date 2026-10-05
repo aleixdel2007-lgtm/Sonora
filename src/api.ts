@@ -1,11 +1,12 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { Playlist, Settings, Song } from "./types";
+import type { ArtistImage, Playlist, Settings, Song } from "./types";
 
 export const api = {
   listSongs: () => invoke<Song[]>("list_songs"),
   importSongs: () => invoke<Song[]>("import_songs"),
   updateSong: (id: string, title: string, artist: string, album: string, coverSourcePath: string | null) =>
     invoke<void>("update_song", { id, title, artist, album, coverSourcePath }),
+  deleteSong: (id: string) => invoke<void>("delete_song", { id }),
   pickCoverImage: () => invoke<string | null>("pick_cover_image"),
 
   listPlaylists: () => invoke<Playlist[]>("list_playlists"),
@@ -27,4 +28,10 @@ export const api = {
 
   fetchCovers: (songIds: string[]) =>
     invoke<{ found: number; not_found: number }>("fetch_covers", { songIds }),
+
+  listArtistImages: () => invoke<ArtistImage[]>("list_artist_images"),
+  searchArtistImage: (artist: string) => invoke<string | null>("search_artist_image", { artist }),
+  setArtistImage: (artist: string, sourcePath: string) =>
+    invoke<string>("set_artist_image", { artist, sourcePath }),
+  fetchArtistImages: (artists: string[]) => invoke<void>("fetch_artist_images", { artists }),
 };

@@ -1,8 +1,9 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { t } from "../i18n";
-import { IconGear, IconLibrary, IconMusicNote, IconPlaylists, IconPlus } from "../Icons";
+import { IconGear, IconLibrary, IconPlaylists, IconPlus, IconUser } from "../Icons";
 import { paletteFor } from "../format";
 import type { Playlist, View } from "../types";
+import logo from "../assets/sonora-logo.png";
 
 interface Props {
   view: View;
@@ -15,14 +16,13 @@ interface Props {
 export default function Sidebar({ view, playlists, onNavigate, onAddSongs, lang }: Props) {
   const isLibrary = view.name === "library";
   const isPlaylists = view.name === "playlists" || view.name === "playlist-detail";
+  const isArtists = view.name === "artists" || view.name === "artist-detail";
   const isSettings = view.name === "settings";
 
   return (
     <aside className="sidebar">
       <div className="brand">
-        <span className="brand-mark">
-          <IconMusicNote />
-        </span>
+        <img className="brand-mark" src={logo} alt="" />
         <span className="brand-name">Sonora</span>
       </div>
 
@@ -34,6 +34,10 @@ export default function Sidebar({ view, playlists, onNavigate, onAddSongs, lang 
         <button className={`nav-item ${isPlaylists ? "active" : ""}`} onClick={() => onNavigate({ name: "playlists" })}>
           <IconPlaylists />
           {t(lang, "nav.playlists")}
+        </button>
+        <button className={`nav-item ${isArtists ? "active" : ""}`} onClick={() => onNavigate({ name: "artists" })}>
+          <IconUser />
+          {t(lang, "nav.artists")}
         </button>
         <button className="nav-item" onClick={onAddSongs}>
           <IconPlus />

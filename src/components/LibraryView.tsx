@@ -1,7 +1,7 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { useMemo, useState } from "react";
 import { t } from "../i18n";
-import { IconCoverSearch, IconEdit, IconPlus, IconSearch } from "../Icons";
+import { IconCoverSearch, IconEdit, IconPlus, IconSearch, IconTrash } from "../Icons";
 import { formatDuration, paletteFor } from "../format";
 import type { Playlist, Song } from "../types";
 import AddToPlaylistMenu from "./AddToPlaylistMenu";
@@ -14,6 +14,7 @@ interface Props {
   onAddSongs: () => void;
   onAddToPlaylist: (playlistId: string, songId: string) => void;
   onEditSong: (song: Song) => void;
+  onDeleteSong: (song: Song) => void;
   onFetchCovers: () => void;
   lang: string;
 }
@@ -26,6 +27,7 @@ export default function LibraryView({
   onAddSongs,
   onAddToPlaylist,
   onEditSong,
+  onDeleteSong,
   onFetchCovers,
   lang,
 }: Props) {
@@ -119,6 +121,14 @@ export default function LibraryView({
                         <IconEdit />
                       </button>
                       <AddToPlaylistMenu playlists={playlists} onAdd={(pid) => onAddToPlaylist(pid, song.id)} lang={lang} />
+                      <button
+                        className="track-row-remove danger"
+                        style={{ opacity: 1 }}
+                        title={t(lang, "song.deleteTooltip")}
+                        onClick={() => onDeleteSong(song)}
+                      >
+                        <IconTrash />
+                      </button>
                     </div>
                   </td>
                 </tr>

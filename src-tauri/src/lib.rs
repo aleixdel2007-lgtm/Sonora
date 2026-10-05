@@ -36,6 +36,7 @@ pub fn run() {
             commands::list_songs,
             commands::import_songs,
             commands::update_song,
+            commands::delete_song,
             commands::pick_cover_image,
             commands::list_playlists,
             commands::create_playlist,
@@ -47,6 +48,10 @@ pub fn run() {
             commands::get_settings,
             commands::set_settings,
             commands::fetch_covers,
+            commands::list_artist_images,
+            commands::search_artist_image,
+            commands::set_artist_image,
+            commands::fetch_artist_images,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

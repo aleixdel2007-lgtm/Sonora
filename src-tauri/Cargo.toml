@@ -1,6 +1,6 @@
 [package]
 name = "sonora"
-version = "0.3.0"
+version = "1.0.0"
 description = "A Tauri App"
 authors = ["you"]
 edition = "2021"
@@ -29,6 +29,11 @@ uuid = { version = "1.27.0", features = ["v4"] }
 reqwest = { version = "0.13.5", features = ["json", "query"] }
 tokio = { version = "1.53.2", features = ["time"] }
 
+
+# Debug builds don't need full debuginfo on disk — this keeps target/debug much smaller
+# over time at the cost of slightly less detailed panic backtraces.
+[profile.dev]
+strip = "debuginfo"
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration
 [profile.release]

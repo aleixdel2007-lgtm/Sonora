@@ -107,6 +107,27 @@ export const IconEdit = (p: IconProps) => (
   </svg>
 );
 
+export const IconUser = (p: IconProps) => (
+  <svg viewBox="0 0 24 24" className={p.className} fill="none" stroke="currentColor" strokeWidth="1.8">
+    <circle cx="12" cy="8" r="4" />
+    <path d="M4 20a8 8 0 0116 0" />
+  </svg>
+);
+
+export const IconRefresh = (p: IconProps) => (
+  <svg viewBox="0 0 24 24" className={p.className} fill="none" stroke="currentColor" strokeWidth="1.8">
+    <path d="M20 11A8 8 0 006.3 6.3L4 8.6M4 13a8 8 0 0013.7 4.7l2.3-2.3" />
+    <path d="M4 4v4.6h4.6M20 20v-4.6h-4.6" />
+  </svg>
+);
+
+export const IconTrash = (p: IconProps) => (
+  <svg viewBox="0 0 24 24" className={p.className} fill="none" stroke="currentColor" strokeWidth="1.8">
+    <path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" />
+    <path d="M10 11v6M14 11v6" />
+  </svg>
+);
+
 export const IconClose = (p: IconProps) => (
   <svg viewBox="0 0 24 24" className={p.className} fill="none" stroke="currentColor" strokeWidth="2">
     <path d="M6 6l12 12M18 6L6 18" />

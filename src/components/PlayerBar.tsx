@@ -11,7 +11,22 @@ interface Props {
 }
 
 export default function PlayerBar({ player, lang }: Props) {
-  const { current, isPlaying, currentTime, duration, volume, toggle, next, prev, seek, setVolume } = player;
+  const {
+    current,
+    isPlaying,
+    currentTime,
+    duration,
+    volume,
+    repeatOne,
+    shuffle,
+    toggle,
+    next,
+    prev,
+    seek,
+    setVolume,
+    toggleRepeatOne,
+    toggleShuffle,
+  } = player;
   const seekRef = useRef<HTMLDivElement>(null);
   const volRef = useRef<HTMLDivElement>(null);
 
@@ -61,7 +76,12 @@ export default function PlayerBar({ player, lang }: Props) {
 
       <div className="transport">
         <div className="transport-btns">
-          <button className="tbtn" aria-label="Aleatorio" disabled>
+          <button
+            className={`tbtn ${shuffle ? "active" : ""}`}
+            aria-label="Aleatorio"
+            aria-pressed={shuffle}
+            onClick={toggleShuffle}
+          >
             <IconShuffle />
           </button>
           <button className="tbtn" aria-label="Anterior" onClick={prev} disabled={!current}>
@@ -73,7 +93,12 @@ export default function PlayerBar({ player, lang }: Props) {
           <button className="tbtn" aria-label="Siguiente" onClick={next} disabled={!current}>
             <IconNext />
           </button>
-          <button className="tbtn" aria-label="Repetir" disabled>
+          <button
+            className={`tbtn ${repeatOne ? "active" : ""}`}
+            aria-label="Repetir"
+            aria-pressed={repeatOne}
+            onClick={toggleRepeatOne}
+          >
             <IconRepeat />
           </button>
         </div>

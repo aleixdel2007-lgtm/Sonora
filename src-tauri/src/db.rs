@@ -38,6 +38,10 @@ pub fn init_db(app_data_dir: &Path) -> Connection {
             key TEXT PRIMARY KEY,
             value TEXT NOT NULL
         );
+        CREATE TABLE IF NOT EXISTS artist_images (
+            artist TEXT PRIMARY KEY,
+            image_path TEXT NOT NULL
+        );
         ",
     )
     .expect("create schema");

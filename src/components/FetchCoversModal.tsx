@@ -8,7 +8,7 @@ import type { Song } from "../types";
 
 interface Props {
   open: boolean;
-  songsWithoutCover: Song[];
+  songsToEnrich: Song[];
   onClose: () => void;
   onDone: () => void;
   lang: string;
@@ -16,7 +16,7 @@ interface Props {
 
 type Step = "form" | "loading" | "done";
 
-export default function FetchCoversModal({ open, songsWithoutCover, onClose, onDone, lang }: Props) {
+export default function FetchCoversModal({ open, songsToEnrich, onClose, onDone, lang }: Props) {
   const [step, setStep] = useState<Step>("form");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [query, setQuery] = useState("");
@@ -38,11 +38,11 @@ export default function FetchCoversModal({ open, songsWithoutCover, onClose, onD
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return songsWithoutCover;
-    return songsWithoutCover.filter(
+    if (!q) return songsToEnrich;
+    return songsToEnrich.filter(
       (s) => s.title.toLowerCase().includes(q) || s.artist.toLowerCase().includes(q),
     );
-  }, [songsWithoutCover, query]);
+  }, [songsToEnrich, query]);
 
   const allFilteredSelected = filtered.length > 0 && filtered.every((s) => selectedIds.has(s.id));
 
@@ -98,7 +98,7 @@ export default function FetchCoversModal({ open, songsWithoutCover, onClose, onD
               <span>{t(lang, "coverFetch.warning")}</span>
             </div>
 
-            {songsWithoutCover.length === 0 ? (
+            {songsToEnrich.length === 0 ? (
               <div className="song-picker-empty">{t(lang, "coverFetch.emptyNone")}</div>
             ) : (
               <div className="field">

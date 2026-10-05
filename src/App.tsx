@@ -1,6 +1,9 @@
-import { useEffect, useState } from "react";
+import { confirm } from "@tauri-apps/plugin-dialog";
+import { useEffect, useMemo, useState } from "react";
 import "./App.css";
 import { api } from "./api";
+import ArtistDetailView from "./components/ArtistDetailView";
+import ArtistsView from "./components/ArtistsView";
 import EditSongModal from "./components/EditSongModal";
 import FetchCoversModal from "./components/FetchCoversModal";
 import LibraryView from "./components/LibraryView";
@@ -10,7 +13,9 @@ import PlaylistDetailView from "./components/PlaylistDetailView";
 import PlaylistsView from "./components/PlaylistsView";
 import SettingsView from "./components/SettingsView";
 import Sidebar from "./components/Sidebar";
-import type { Playlist, Settings, Song, View } from "./types";
+import { isMissingMetadata } from "./format";
+import { t } from "./i18n";
+import type { ArtistImage, Playlist, Settings, Song, View } from "./types";
 import { usePlayer } from "./usePlayer";
 
 const DEFAULT_SETTINGS: Settings = { theme: "auto", language: "es", density: "comfortable" };
@@ -20,6 +25,7 @@ function App() {
   const [songs, setSongs] = useState<Song[]>([]);
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [playlistSongs, setPlaylistSongs] = useState<Song[]>([]);
+  const [artistImages, setArtistImages] = useState<ArtistImage[]>([]);
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [modal, setModal] = useState<{ mode: "create" } | { mode: "edit"; playlist: Playlist } | null>(null);
   const [editingSong, setEditingSong] = useState<Song | null>(null);
@@ -30,6 +36,7 @@ function App() {
     api.listSongs().then(setSongs).catch(console.error);
     api.listPlaylists().then(setPlaylists).catch(console.error);
     api.getSettings().then(setSettings).catch(console.error);
+    api.listArtistImages().then(setArtistImages).catch(console.error);
   }, []);
 
   useEffect(() => {
@@ -52,6 +59,10 @@ function App() {
     api.listPlaylists().then(setPlaylists).catch(console.error);
   }
 
+  function refreshArtistImages() {
+    api.listArtistImages().then(setArtistImages).catch(console.error);
+  }
+
   function refreshSongs() {
     api.listSongs().then(setSongs).catch(console.error);
     if (view.name === "playlist-detail") {
@@ -62,6 +73,20 @@ function App() {
   async function handleAddSongs() {
     const updated = await api.importSongs();
     setSongs(updated);
+  }
+
+  async function handleDeleteSong(song: Song) {
+    const ok = await confirm(t(lang, "song.deleteConfirmMessage"), {
+      title: t(lang, "song.deleteTooltip"),
+      kind: "warning",
+      okLabel: t(lang, "song.deleteConfirmOk"),
+      cancelLabel: t(lang, "modal.cancel"),
+    });
+    if (!ok) return;
+    await api.deleteSong(song.id);
+    if (player.current?.id === song.id) player.next();
+    refreshSongs();
+    refreshPlaylists();
   }
 
   function handleSaveSettings(next: Settings) {
@@ -103,6 +128,11 @@ function App() {
   }
 
   const currentPlaylist = view.name === "playlist-detail" ? playlists.find((p) => p.id === view.playlistId) : undefined;
+  const artistSongs = view.name === "artist-detail" ? songs.filter((s) => s.artist === view.artist) : [];
+  const artistImageMap = useMemo(
+    () => Object.fromEntries(artistImages.map((a) => [a.artist, a.image_path])),
+    [artistImages],
+  );
   const lang = settings.language;
 
   return (
@@ -118,6 +148,7 @@ function App() {
           onAddSongs={handleAddSongs}
           onAddToPlaylist={handleAddSongToPlaylist}
           onEditSong={setEditingSong}
+          onDeleteSong={handleDeleteSong}
           onFetchCovers={() => setFetchCoversOpen(true)}
           lang={lang}
         />
@@ -143,6 +174,31 @@ function App() {
           onRemoveSong={(songId) => handleRemoveSongFromPlaylist(currentPlaylist.id, songId)}
           onEditSong={setEditingSong}
           onEdit={() => setModal({ mode: "edit", playlist: currentPlaylist })}
+          lang={lang}
+        />
+      )}
+
+      {view.name === "artists" && (
+        <ArtistsView
+          songs={songs}
+          artistImages={artistImageMap}
+          onOpen={(artist) => setView({ name: "artist-detail", artist })}
+          onImagesUpdated={refreshArtistImages}
+          lang={lang}
+        />
+      )}
+
+      {view.name === "artist-detail" && (
+        <ArtistDetailView
+          artist={view.artist}
+          songs={artistSongs}
+          imagePath={artistImageMap[view.artist] ?? null}
+          currentSongId={player.current?.id ?? null}
+          onBack={() => setView({ name: "artists" })}
+          onPlayAll={() => player.playQueue(artistSongs, 0)}
+          onPlaySong={(_song, index) => player.playQueue(artistSongs, index)}
+          onEditSong={setEditingSong}
+          onImageUpdated={refreshArtistImages}
           lang={lang}
         />
       )}
@@ -174,7 +230,7 @@ function App() {
 
       <FetchCoversModal
         open={fetchCoversOpen}
-        songsWithoutCover={songs.filter((s) => !s.cover_path)}
+        songsToEnrich={songs.filter(isMissingMetadata)}
         onClose={() => setFetchCoversOpen(false)}
         onDone={refreshSongs}
         lang={lang}

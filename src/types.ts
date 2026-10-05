@@ -16,6 +16,11 @@ export interface Playlist {
   total_duration_secs: number;
 }
 
+export interface ArtistImage {
+  artist: string;
+  image_path: string;
+}
+
 export interface Settings {
   theme: "light" | "dark" | "auto";
   language: string;
@@ -26,4 +31,6 @@ export type View =
   | { name: "library" }
   | { name: "playlists" }
   | { name: "playlist-detail"; playlistId: string }
+  | { name: "artists" }
+  | { name: "artist-detail"; artist: string }
   | { name: "settings" };

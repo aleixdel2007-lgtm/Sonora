@@ -1,3 +1,14 @@
+import type { Song } from "./types";
+
+// Placeholders the Rust backend writes when a file has no readable tag for that field
+// (src-tauri/src/commands.rs). A song still showing one of these is missing real data.
+export const UNKNOWN_ARTIST = "Artista desconocido";
+export const UNKNOWN_ALBUM = "Álbum desconocido";
+
+export function isMissingMetadata(song: { artist: string; album: string; cover_path: string | null }): boolean {
+  return !song.cover_path || song.artist === UNKNOWN_ARTIST || song.album === UNKNOWN_ALBUM;
+}
+
 export function formatDuration(totalSeconds: number): string {
   const secs = Math.max(0, Math.floor(totalSeconds));
   const m = Math.floor(secs / 60);
@@ -22,4 +33,21 @@ export function paletteFor(id: string): [string, string] {
   let hash = 0;
   for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
   return PALETTES[hash % PALETTES.length];
+}
+
+export interface ArtistSummary {
+  name: string;
+  songCount: number;
+  totalDurationSecs: number;
+}
+
+export function groupByArtist(songs: Song[]): ArtistSummary[] {
+  const map = new Map<string, ArtistSummary>();
+  for (const song of songs) {
+    const entry = map.get(song.artist) ?? { name: song.artist, songCount: 0, totalDurationSecs: 0 };
+    entry.songCount += 1;
+    entry.totalDurationSecs += song.duration_secs;
+    map.set(song.artist, entry);
+  }
+  return [...map.values()].sort((a, b) => a.name.localeCompare(b.name));
 }

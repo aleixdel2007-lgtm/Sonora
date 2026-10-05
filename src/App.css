@@ -83,12 +83,10 @@ input{font-family:inherit;}
   padding:0 6px;
 }
 .brand-mark{
-  width:30px;height:30px;border-radius:8px;
-  background:linear-gradient(145deg, var(--accent), var(--accent-strong));
-  display:flex;align-items:center;justify-content:center;
+  width:30px;height:30px;
   flex:none;
+  object-fit:contain;
 }
-.brand-mark svg{width:16px;height:16px;fill:var(--accent-ink);}
 .brand-name{
   font-family:"Big Shoulders", sans-serif;
   font-weight:800;
@@ -220,6 +218,7 @@ h1.page-title{
 }
 .track-row:hover .track-row-remove{opacity:1;}
 .track-row-remove:hover{color:var(--accent-strong);}
+.track-row-remove.danger:hover{color:#e5484d;}
 .track-row-remove svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;}
 
 /* ---------- Playlist grid ---------- */
@@ -339,6 +338,7 @@ h1.page-title{
 }
 .tbtn.play svg{width:14px;height:14px;}
 .tbtn:hover:not(:disabled){color:var(--text);}
+.tbtn.active{color:var(--accent-strong);}
 .seek-row{display:flex;align-items:center;gap:8px;width:100%;max-width:460px;}
 .seek-time{font-size:11px;color:var(--text-muted);width:34px;text-align:center;flex:none;}
 .seek-track{flex:1;height:4px;border-radius:999px;background:var(--border);position:relative;cursor:pointer;touch-action:none;}

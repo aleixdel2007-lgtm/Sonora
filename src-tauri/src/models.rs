@@ -21,6 +21,12 @@ pub struct Playlist {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ArtistImage {
+    pub artist: String,
+    pub image_path: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Settings {
     pub theme: String,
     pub language: String,
